@@ -22,18 +22,29 @@ $stmt->close();
 ?>
 
 <!-- Main content -->
-<div class="main-container">
-    <div class="pd-ltr-20 xs-pd-20-10">
-        <div class="min-height-200px">
-            <div class="page-header">
-                <div class="row">
-                    <div class="col-md-6 col-sm-12">
-                        <div class="title">
-                            <h4>Document Management</h4>
+<div class="page-container">
+    <div class="main-container">
+        <div class="pd-ltr-20 xs-pd-20-10">
+            <div class="min-height-200px">
+                <div class="page-header">
+                    <div class="row">
+                        <div class="col-md-6 col-sm-12">
+                            <div class="title">
+                                <h4>Manage Document</h4>
+                            </div>
+                            <nav aria-label="breadcrumb" role="navigation">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item">
+                                        <a href="index.php">Home</a>
+                                    </li>
+                                    <li class="breadcrumb-item active" aria-current="page">
+                                       Manage Document
+                                    </li>
+                                </ol>
+                            </nav>
                         </div>
-                    </div>
                     <div class="col-md-6 col-sm-12 text-right">
-                        <a href="upload_document.php" class="btn btn-primary">Upload New Document</a>
+                        <a href="upload_document.php" class="btn btn-primary">Manage New Document</a>
                     </div>
                 </div>
             </div>
