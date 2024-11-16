@@ -5,7 +5,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <div class="left-side-bar">
     <div class="brand-logo">
         <a href="index.php">
-            <span>JAT</span>
+            <span>JOB</span>
         </a>
         <div class="close-sidebar" data-toggle="left-sidebar-close" role="button" aria-label="Close Sidebar">
             <i class="ion-close-round"></i>
