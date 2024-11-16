@@ -8,95 +8,147 @@ $alertMessage = '';
 $alertType = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION['user_id'])) {
-    // Profile update logic
     $userId = $_SESSION['user_id'];
-    $username = htmlspecialchars($_POST['username']);
-    $email = htmlspecialchars($_POST['email']);
-    $fullName = htmlspecialchars($_POST['full_name']);
-    $phone = htmlspecialchars($_POST['phone']);
-    $country = htmlspecialchars($_POST['country']);
-    $address = htmlspecialchars($_POST['address']);
-    $bio = htmlspecialchars($_POST['bio']);
-    $facebook = htmlspecialchars($_POST['facebook']);
-    $twitter = htmlspecialchars($_POST['twitter']);
-    $linkedin = htmlspecialchars($_POST['linkedin']);
-    $profilePicture = $_FILES['profile_picture'];
-    
-    $uploadDir = 'uploads/';
-    $fileName = $user['profile_picture']; // Keep the existing file by default
 
-if ($_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
-    $allowedTypes = ['image/jpeg', 'image/png'];
-    $fileType = mime_content_type($_FILES['profile_picture']['tmp_name']);
-    
-    // Validate file type and size
-    if (in_array($fileType, $allowedTypes) && $_FILES['profile_picture']['size'] <= 2 * 1024 * 1024) {
-        $fileName = time() . '-' . preg_replace('/[^a-zA-Z0-9\.\-_]/', '_', basename($_FILES['profile_picture']['name']));
-        $uploadFile = $uploadDir . $fileName;
-        
-        if (!move_uploaded_file($_FILES['profile_picture']['tmp_name'], $uploadFile)) {
+    // Update Profile Information
+    $fields = ['username', 'email', 'full_name', 'phone', 'country', 'address', 'bio', 'facebook', 'twitter', 'linkedin'];
+    $profileData = [];
+    foreach ($fields as $field) {
+        $profileData[$field] = htmlspecialchars($_POST[$field]);
+    }
+
+    // Profile Picture Upload Logic
+    $profilePicture = $_FILES['profile_picture'] ?? null;
+    $fileName = $user['profile_picture']; // Default to existing picture
+
+    if ($profilePicture && $profilePicture['error'] == UPLOAD_ERR_OK) {
+        $fileName = handleFileUpload($profilePicture);
+        if (!$fileName) {
             $alertMessage = "Failed to upload profile picture.";
             $alertType = "danger";
         }
-    } else {
-        $alertMessage = "Invalid file type or size exceeds 2MB.";
-        $alertType = "danger";
     }
-}
 
-
-    // Prepare the update query if no errors
+    // Profile Update Query
     if (empty($alertMessage)) {
-        $query = "UPDATE users SET username = ?, email = ?, full_name = ?, phone = ?, country = ?, address = ?, bio = ?, facebook = ?, twitter = ?, linkedin = ?" . ($fileName ? ", profile_picture = ?" : "") . " WHERE id = ?";
+        $query = "UPDATE users SET 
+                    username = ?, 
+                    email = ?, 
+                    full_name = ?, 
+                    phone = ?, 
+                    country = ?, 
+                    address = ?, 
+                    bio = ?, 
+                    facebook = ?, 
+                    twitter = ?, 
+                    linkedin = ?" . ($fileName ? ", profile_picture = ?" : "") . " WHERE id = ?";
         $stmt = $mysqli->prepare($query);
         
-        if ($fileName) {
-            $stmt->bind_param("sssssssssssi", $username, $email, $fullName, $phone, $country, $address, $bio, $facebook, $twitter, $linkedin, $fileName, $userId);
-        } else {
-            $stmt->bind_param("ssssssssssi", $username, $email, $fullName, $phone, $country, $address, $bio, $facebook, $twitter, $linkedin, $userId);
-        }
+        $stmt->bind_param("sssssssssssi", 
+            $profileData['username'], 
+            $profileData['email'], 
+            $profileData['full_name'], 
+            $profileData['phone'], 
+            $profileData['country'], 
+            $profileData['address'], 
+            $profileData['bio'], 
+            $profileData['facebook'], 
+            $profileData['twitter'], 
+            $profileData['linkedin'], 
+            $fileName, 
+            $userId
+        );
 
-        if ($stmt && $stmt->execute()) {
+        if ($stmt->execute()) {
             $alertMessage = "Profile updated successfully!";
             $alertType = "success";
         } else {
-            $alertMessage = "Failed to update profile. Error: " . $stmt->error;
+            $alertMessage = "Failed to update profile: " . $stmt->error;
             $alertType = "danger";
         }
     }
 
-    // Handle adding skills if provided
-    if (isset($_POST['skill_name']) && isset($_POST['proficiency']) && !empty($_POST['skill_name'])) {
-        $skillName = htmlspecialchars($_POST['skill_name']);
-        $proficiency = (int)$_POST['proficiency'];
-
-        // Add new skill to the database
-        $query = "INSERT INTO user_skills (user_id, skill_name, proficiency) VALUES (?, ?, ?)";
-        $stmt = $mysqli->prepare($query);
-        $stmt->bind_param("isi", $userId, $skillName, $proficiency);
-
-        if ($stmt->execute()) {
-            $alertMessage = "Profile and skill updated successfully!";
-            $alertType = "success";
-        } else {
-            $alertMessage = "Failed to add skill.";
-            $alertType = "danger";
-        }
+    // Add Skill if provided
+    if (isset($_POST['skill_name'], $_POST['proficiency']) && !empty($_POST['skill_name'])) {
+        handleInsertSkill($userId, $_POST['skill_name'], (int)$_POST['proficiency']);
     }
+
+    // Add Certificate, Education, and Experience if provided
+    handleInsertAdditionalData($userId);
 }
 
 // Fetch user data securely
-if (isset($_SESSION['user_id'])) {
-    $userId = $_SESSION['user_id'];
-    $query = "SELECT * FROM users WHERE id = ?";
-    $stmt = $mysqli->prepare($query);
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
+$query = "SELECT * FROM users WHERE id = ?";
+$stmt = $mysqli->prepare($query);
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+
+// Function for file upload handling
+function handleFileUpload($file) {
+    $allowedTypes = ['image/jpeg', 'image/png'];
+    $fileType = mime_content_type($file['tmp_name']);
+    $uploadDir = 'uploads/';
+    $fileName = preg_replace('/[^a-zA-Z0-9\.\-_]/', '_', basename($file['name']));
+    $filePath = $uploadDir . $fileName;
+
+    // Validate file type and size
+    if (in_array($fileType, $allowedTypes) && $file['size'] <= 2 * 1024 * 1024) {
+        if (move_uploaded_file($file['tmp_name'], $filePath)) {
+            return $fileName;
+        }
+    }
+    return false;
 }
 
+// Function to handle inserting additional data (certificate, education, experience)
+function handleInsertAdditionalData($userId) {
+    global $mysqli;
+
+    // Add Certificate
+    if (!empty($_POST['certificate_name'])) {
+        $certificateName = htmlspecialchars($_POST['certificate_name']);
+        $issuingOrganization = htmlspecialchars($_POST['issuing_organization']);
+        $dateIssued = $_POST['date_issued'];
+        $stmt = $mysqli->prepare("INSERT INTO user_certificates (user_id, certificate_name, issuing_organization, date_issued) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("isss", $userId, $certificateName, $issuingOrganization, $dateIssued);
+        $stmt->execute();
+    }
+
+    // Add Education
+    if (!empty($_POST['degree'])) {
+        $degree = htmlspecialchars($_POST['degree']);
+        $institution = htmlspecialchars($_POST['institution']);
+        $graduationYear = $_POST['graduation_year'];
+        $stmt = $mysqli->prepare("INSERT INTO user_education (user_id, degree, institution, graduation_year) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("issi", $userId, $degree, $institution, $graduationYear);
+        $stmt->execute();
+    }
+
+    // Add Experience
+    if (!empty($_POST['job_title'])) {
+        $jobTitle = htmlspecialchars($_POST['job_title']);
+        $company = htmlspecialchars($_POST['company']);
+        $startDate = $_POST['start_date'];
+        $endDate = $_POST['end_date'];
+        $description = htmlspecialchars($_POST['description']);
+        $stmt = $mysqli->prepare("INSERT INTO user_experience (user_id, job_title, company, start_date, end_date, description) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssss", $userId, $jobTitle, $company, $startDate, $endDate, $description);
+        $stmt->execute();
+    }
+}
+
+// Function to handle inserting skills
+function handleInsertSkill($userId, $skillName, $proficiency) {
+    global $mysqli;
+    $query = "INSERT INTO user_skills (user_id, skill_name, proficiency) VALUES (?, ?, ?)";
+    $stmt = $mysqli->prepare($query);
+    $stmt->bind_param("isi", $userId, $skillName, $proficiency);
+    $stmt->execute();
+}
 ?>
+
 
 <div class="main-container">
     <div class="pd-ltr-20 xs-pd-20-10">
@@ -387,67 +439,94 @@ if (isset($_SESSION['user_id'])) {
 
 
     <!-- Settings Tab (Edit Profile) -->
-    <div class="tab-pane fade" id="editProfile" role="tabpanel" aria-labelledby="settings-tab">
-        <h5 class="h5 text-blue">Edit Profile</h5>
+   <div class="tab-pane fade" id="editProfile" role="tabpanel" aria-labelledby="settings-tab">
+    <h5 class="h5 text-blue">Edit Profile</h5>
 
-        <form method="POST" enctype="multipart/form-data" class="pt-3">
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" name="full_name" class="form-control" value="<?php echo htmlspecialchars($user['full_name']); ?>" required>
-            </div>
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" class="form-control" value="<?php echo htmlspecialchars($user['username']); ?>" required>
-            </div>
-            <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($user['email']); ?>" required>
-            </div>
-            <div class="form-group">
-                <label>Phone Number</label>
-                <input type="text" name="phone" class="form-control" value="<?php echo htmlspecialchars($user['phone']); ?>" required>
-            </div>
-            <div class="form-group">
-                <label>Country</label>
-                <input type="text" name="country" class="form-control" value="<?php echo htmlspecialchars($user['country']); ?>" required>
-            </div>
-            <div class="form-group">
-                <label>Address</label>
-                <textarea name="address" class="form-control" rows="4" required><?php echo htmlspecialchars($user['address']); ?></textarea>
-            </div>
-            <div class="form-group">
-                <label>Biography</label>
-                <textarea name="bio" class="form-control" rows="4"><?php echo htmlspecialchars($user['bio']); ?></textarea>
-            </div>
-            <div class="form-group">
-                <label>Facebook</label>
-                <input type="text" name="facebook" class="form-control" value="<?php echo htmlspecialchars($user['facebook']); ?>">
-            </div>
-            <div class="form-group">
-                <label>Twitter</label>
-                <input type="text" name="twitter" class="form-control" value="<?php echo htmlspecialchars($user['twitter']); ?>">
-            </div>
-            <div class="form-group">
-                <label>LinkedIn</label>
-                <input type="text" name="linkedin" class="form-control" value="<?php echo htmlspecialchars($user['linkedin']); ?>">
-            </div>
-            <div class="form-group">
-                <label>Profile Picture</label>
-                <input type="file" name="profile_picture" class="form-control">
-            </div>
-            <h5 class="h5 text-blue">Add New Skill (Optional)</h5>
-            <div class="form-group">
-                <label>Skill Name</label>
-                <input type="text" name="skill_name" class="form-control" placeholder="Skill name">
-            </div>
-            <div class="form-group">
-                <label>Proficiency (%)</label>
-                <input type="number" name="proficiency" class="form-control" placeholder="Proficiency level" min="1" max="100">
-            </div>
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-        </form>
-    </div>
+    <form method="POST" enctype="multipart/form-data" class="pt-3">
+        <!-- Profile Information Fields -->
+        <?php renderTextInput("Full Name", "full_name", $user['full_name']); ?>
+        <?php renderTextInput("Username", "username", $user['username']); ?>
+        <?php renderEmailInput("Email Address", "email", $user['email']); ?>
+        <?php renderTextInput("Phone Number", "phone", $user['phone']); ?>
+        <?php renderTextInput("Country", "country", $user['country']); ?>
+        <?php renderTextarea("Address", "address", $user['address']); ?>
+        <?php renderTextarea("Biography", "bio", $user['bio']); ?>
+        <?php renderTextInput("Facebook", "facebook", $user['facebook']); ?>
+        <?php renderTextInput("Twitter", "twitter", $user['twitter']); ?>
+        <?php renderTextInput("LinkedIn", "linkedin", $user['linkedin']); ?>
+        
+        <div class="form-group">
+            <label>Profile Picture</label>
+            <input type="file" name="profile_picture" class="form-control">
+        </div>
+
+        <!-- Certificates Section -->
+        <h5 class="h5 text-blue mt-4">Add New Certificate (Optional)</h5>
+        <?php renderTextInput("Certificate Name", "certificate_name"); ?>
+        <?php renderTextInput("Issuing Organization", "issuing_organization"); ?>
+        <div class="form-group">
+            <label>Date Issued</label>
+            <input type="date" name="date_issued" class="form-control">
+        </div>
+
+        <!-- Education Section -->
+        <h5 class="h5 text-blue mt-4">Add New Education (Optional)</h5>
+        <?php renderTextInput("Degree", "degree"); ?>
+        <?php renderTextInput("Institution", "institution"); ?>
+        <div class="form-group">
+            <label>Graduation Year</label>
+            <input type="number" name="graduation_year" class="form-control" min="1900" max="<?php echo date('Y'); ?>">
+        </div>
+
+        <!-- Experience Section -->
+        <h5 class="h5 text-blue mt-4">Add New Experience (Optional)</h5>
+        <?php renderTextInput("Job Title", "job_title"); ?>
+        <?php renderTextInput("Company", "company"); ?>
+        <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" name="start_date" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>End Date</label>
+            <input type="date" name="end_date" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" class="form-control" rows="4" placeholder="Describe your role"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
 </div>
+
+<?php 
+// Render Functions
+function renderTextInput($label, $name, $value = '') {
+    echo "
+    <div class='form-group'>
+        <label>{$label}</label>
+        <input type='text' name='{$name}' class='form-control' value='" . htmlspecialchars($value) . "'>
+    </div>";
+} 
+
+function renderEmailInput($label, $name, $value = '') {
+    echo "
+    <div class='form-group'>
+        <label>{$label}</label>
+        <input type='email' name='{$name}' class='form-control' value='" . htmlspecialchars($value) . "'readonly>
+    </div>";
+}
+
+function renderTextarea($label, $name, $value = '') {
+    echo "
+    <div class='form-group'>
+        <label>{$label}</label>
+        <textarea name='{$name}' class='form-control' rows='4'>" . htmlspecialchars($value) . "</textarea>
+    </div>";
+}
+?>
+
+
 <style>
     .nav-tabs .nav-link.active {
     background-color: #1b00ff;

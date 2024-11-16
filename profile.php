@@ -51,6 +51,8 @@ if (isset($_SESSION['user_id'])) {
     font-size: 16px;
     margin: 5px 0;
     color: #666;
+    word-break: break-word;
+
 }
 
 .resume-header strong {
@@ -191,7 +193,7 @@ if (isset($_SESSION['user_id'])) {
                     <div class="pd-20 card-box">
                         <div class="resume-header">
                             <div class="col-md-3">
-                                <img src="uploads/<?php echo htmlspecialchars($user['profile_picture']); ?>" alt="Profile Picture" class="profile-pic">
+                            <img src="uploads/<?php echo htmlspecialchars($user['profile_picture']); ?>" alt="Profile picture of <?php echo htmlspecialchars($user['full_name']); ?>" class="profile-pic">
                             </div>
                             <div class="col-md-9">
                                 <h3 class="text-blue"><?php echo htmlspecialchars($user['full_name']); ?></h3>
@@ -223,11 +225,14 @@ if (isset($_SESSION['user_id'])) {
                                             $skillName = htmlspecialchars($row['skill_name']);
                                             $proficiency = (int)$row['proficiency'];
                                             echo "<li>
-                                                    <strong>{$skillName}</strong>
-                                                    <div class='progress'>
-                                                        <div class='progress-bar' role='progressbar' style='width: {$proficiency}%' aria-valuenow='{$proficiency}' aria-valuemin='0' aria-valuemax='100'>{$proficiency}%</div>
-                                                    </div>
-                                                  </li>";
+        <strong>{$skillName}</strong>
+        <div class='progress'>
+            <div class='progress-bar' role='progressbar' style='width: {$proficiency}%' aria-valuenow='{$proficiency}' aria-valuemin='0' aria-valuemax='100' title='{$proficiency}%'>
+                <span>{$proficiency}%</span>
+            </div>
+        </div>
+      </li>";
+
                                         }
                                     } else {
                                         echo "<li>No skills listed.</li>";
