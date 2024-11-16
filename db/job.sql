@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 11, 2024 at 03:08 PM
+-- Generation Time: Nov 16, 2024 at 10:20 AM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -94,6 +94,50 @@ CREATE TABLE `users` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `user_certificates`
+--
+
+CREATE TABLE `user_certificates` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `certificate_name` varchar(255) DEFAULT NULL,
+  `issuing_organization` varchar(255) DEFAULT NULL,
+  `date_issued` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_education`
+--
+
+CREATE TABLE `user_education` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `degree` varchar(100) DEFAULT NULL,
+  `institution` varchar(100) DEFAULT NULL,
+  `graduation_year` year(4) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_experience`
+--
+
+CREATE TABLE `user_experience` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `job_title` varchar(100) DEFAULT NULL,
+  `company` varchar(100) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `description` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `user_skills`
 --
 
@@ -102,6 +146,24 @@ CREATE TABLE `user_skills` (
   `user_id` int(11) NOT NULL,
   `skill_name` varchar(100) NOT NULL,
   `proficiency` int(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_tasks`
+--
+
+CREATE TABLE `user_tasks` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `due_date` date DEFAULT NULL,
+  `priority` enum('low','medium','high') DEFAULT 'medium',
+  `status` enum('pending','in_progress','completed') DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -127,9 +189,37 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `user_certificates`
+--
+ALTER TABLE `user_certificates`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `user_education`
+--
+ALTER TABLE `user_education`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `user_experience`
+--
+ALTER TABLE `user_experience`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- Indexes for table `user_skills`
 --
 ALTER TABLE `user_skills`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `user_tasks`
+--
+ALTER TABLE `user_tasks`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`);
 
@@ -156,9 +246,33 @@ ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `user_certificates`
+--
+ALTER TABLE `user_certificates`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user_education`
+--
+ALTER TABLE `user_education`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user_experience`
+--
+ALTER TABLE `user_experience`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `user_skills`
 --
 ALTER TABLE `user_skills`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `user_tasks`
+--
+ALTER TABLE `user_tasks`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -166,10 +280,34 @@ ALTER TABLE `user_skills`
 --
 
 --
+-- Constraints for table `user_certificates`
+--
+ALTER TABLE `user_certificates`
+  ADD CONSTRAINT `user_certificates_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `user_education`
+--
+ALTER TABLE `user_education`
+  ADD CONSTRAINT `user_education_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `user_experience`
+--
+ALTER TABLE `user_experience`
+  ADD CONSTRAINT `user_experience_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
 -- Constraints for table `user_skills`
 --
 ALTER TABLE `user_skills`
   ADD CONSTRAINT `user_skills_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `user_tasks`
+--
+ALTER TABLE `user_tasks`
+  ADD CONSTRAINT `user_tasks_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
