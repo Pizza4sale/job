@@ -142,11 +142,21 @@ function handleInsertAdditionalData($userId) {
 // Function to handle inserting skills
 function handleInsertSkill($userId, $skillName, $proficiency) {
     global $mysqli;
+
+    // Validate proficiency percentage
+    if ($proficiency < 0 || $proficiency > 100) {
+        $alertMessage = "Proficiency percentage must be between 0 and 100.";
+        $alertType = "danger";
+        return; // Exit the function if invalid proficiency
+    }
+
+    // Insert skill into the database
     $query = "INSERT INTO user_skills (user_id, skill_name, proficiency) VALUES (?, ?, ?)";
     $stmt = $mysqli->prepare($query);
     $stmt->bind_param("isi", $userId, $skillName, $proficiency);
     $stmt->execute();
 }
+
 ?>
 
 
@@ -439,7 +449,7 @@ function handleInsertSkill($userId, $skillName, $proficiency) {
 
 
     <!-- Settings Tab (Edit Profile) -->
-   <div class="tab-pane fade" id="editProfile" role="tabpanel" aria-labelledby="settings-tab">
+    <div class="tab-pane fade" id="editProfile" role="tabpanel" aria-labelledby="settings-tab">
     <h5 class="h5 text-blue">Edit Profile</h5>
 
     <form method="POST" enctype="multipart/form-data" class="pt-3">
@@ -495,9 +505,17 @@ function handleInsertSkill($userId, $skillName, $proficiency) {
             <textarea name="description" class="form-control" rows="4" placeholder="Describe your role"></textarea>
         </div>
 
+       <!-- Skills Section -->
+       <h5 class="h5 text-blue mt-4">Add New Skill (Optional)</h5>
+        <?php renderTextInput("Skill Name", "skill_name"); ?>
+        <div class="form-group">
+            <label>Proficiency (%)</label>
+            <input type="number" name="proficiency" class="form-control" min="0" max="100" step="1" placeholder="Enter proficiency percentage" required>
+        </div>
         <button type="submit" class="btn btn-primary">Save Changes</button>
     </form>
 </div>
+
 
 <?php 
 // Render Functions

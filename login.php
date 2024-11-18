@@ -3,13 +3,13 @@ include("includes/head.php");
 
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
+    $login = $_POST['login'];  // Use a single field for both email and username
     $password = $_POST['password'];
 
-    // Prepare and execute the SQL statement
-    $stmt = $mysqli->prepare("SELECT * FROM users WHERE email = ?");
+    // Prepare and execute the SQL statement to check if the login is either an email or a username
+    $stmt = $mysqli->prepare("SELECT * FROM users WHERE email = ? OR username = ?");
     if ($stmt) {
-        $stmt->bind_param("s", $email);
+        $stmt->bind_param("ss", $login, $login); // Bind both email and username to the query
         $stmt->execute();
         $result = $stmt->get_result();
         $user = $result->fetch_assoc();
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             header("Location: index.php");
             exit(); // Ensure no further code is executed after redirection
         } else {
-            $error_message = "Invalid email or password!";
+            $error_message = "Incorrect email/username or password. Please try again.";
         }
 
         $stmt->close();
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endif; ?>
         <form method="post" action="">
             <div class="input-group custom">
-                <input type="email" name="email" class="form-control form-control-lg" placeholder="Email" required />
+                <input type="text" name="login" class="form-control form-control-lg" placeholder="Email or Username" required />
                 <div class="input-group-append custom">
                     <span class="input-group-text"><i class="icon-copy dw dw-user1"></i></span>
                 </div>
